@@ -49,6 +49,7 @@ from mrcnn import model as modellib, utils
 from mrcnn import visualize
 
 import cv2
+from math import sqrt, pi, fabs
 
 # Path to trained weights file
 COCO_WEIGHTS_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
@@ -278,6 +279,35 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
     return x1, x2, y1, y2
 
 
+def count_mask_contours(masks, class_ids, id):
+    contours, _ = cv2.findContours(masks[:, :, np.where(class_ids == id)[0]].astype(np.uint8), cv2.RETR_TREE,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+    cnt = contours[0]
+    return cnt
+
+
+def count_perimeter(cnt):
+    perimeter = cv2.arcLength(cnt, True)
+    return perimeter
+
+
+def count_centroid(cnt):
+    M = cv2.moments(cnt)
+    cx = int(M['m10'] / M['m00'])
+    cy = int(M['m01'] / M['m00'])
+    return cx, cy
+
+
+def count_area(cnt):
+    area = cv2.contourArea(cnt)
+    return area
+
+
+def count_circularity_ratio(area, perimeter):
+    circratio = 2 * sqrt(pi * area) / perimeter
+    return circratio
+
+
 def detect_and_color_splash(model, image_path=None, video_path=None):
     assert image_path or video_path
 
@@ -340,6 +370,20 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 if 1 in r['class_ids']:
                     x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = count_bbox_coordinates(r['masks'], r['class_ids'], 1,
                                                                                         class_names[1], count)
+                    cnt = count_mask_contours(r['masks'], r['class_ids'], 1)
+                    perimeter = count_perimeter(cnt)
+                    area = count_area(cnt)
+                    circratio = count_circularity_ratio(area, perimeter)
+
+                    #if 2 in r['class_ids']:
+                    #    cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
+
+                    #    cxo, cyo = count_centroid(cnt)
+                    #    cxp, cyp = count_centroid(cnt_polar)
+
+                    #    d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
+                    #    dx = fabs(cxp - cxo)
+                    #    dy = cyp - cyo
 
                 if 3 in r['class_ids']:
                     x1, x2, y1, y2 = count_bbox_coordinates(r['masks'], r['class_ids'], 3, class_names[3], count)
@@ -367,7 +411,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                elif labels and ('oocyte' and 'polar body' in labels) and len(set(labels)) == 2 and len(labels) > 1:
+                elif labels and ('oocyte' and 'polar body' in labels) and len(set(labels)) == 2:
                     stage = "Ustawienie komorki"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
@@ -388,7 +432,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     )
                     count_oocyte_area(r['masks'], r['class_ids'], stage, count)
                 elif labels and ('oocyte' and 'pipette' in labels) and len(set(labels)) >= 2 and len(labels) > 2 \
-                        and x1_pipette <= x2_oocyte:
+                        and x1_pipette <= x2_oocyte and circratio < 0.8:
                     stage = "Wbicie pipety"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
