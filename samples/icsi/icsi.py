@@ -273,7 +273,7 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
     y2 = bbox_coordinates[0][2]
     print("{} bbox: ".format(label), bbox_coordinates)
     f = open("bboxes.txt", "a+")
-    f.write("Frame: %d\n" % (count))
+    f.write("Frame: {}".format(count))
     f.write("Bbox {}: {} \r\n".format(label, bbox_coordinates))
     f.close()
     return x1, x2, y1, y2
@@ -289,7 +289,7 @@ def count_mask_contours(masks, class_ids, id):
 
 def count_perimeter(cnt):
     perimeter = cv2.arcLength(cnt, True)
-    print("Permeter: ", perimeter)
+    print("Perimeter: ", perimeter)
     return perimeter
 
 
@@ -298,6 +298,9 @@ def count_centroid(cnt):
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
     print("Centroid: ", cx, cy)
+    f = open("oocyte_params.txt", "a+")
+    f.write("Centroid: ({}, {})\r\n".format(cx, cy))
+    f.close()
     return cx, cy
 
 
@@ -307,10 +310,15 @@ def count_area(cnt):
     return area
 
 
-def count_circularity_ratio(area, perimeter):
+def count_circularity_ratio(area, perimeter, count):
     circratio = 2 * sqrt(pi * area) / perimeter
     print("ratio: ", circratio)
+    f = open("oocyte_params.txt", "a+")
+    f.write("Frame: {}\n".format(count))
+    f.write("Circularity ratio: {}\n".format(circratio))
+    f.close()
     return circratio
+
 
 
 def detect_and_color_splash(model, image_path=None, video_path=None):
@@ -378,19 +386,19 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     cnt = count_mask_contours(r['masks'], r['class_ids'], 1)
                     perimeter = count_perimeter(cnt)
                     area = count_area(cnt)
-                    circratio = count_circularity_ratio(area, perimeter)
+                    circratio = count_circularity_ratio(area, perimeter, count)
                     cxo, cyo = count_centroid(cnt)
 
-                    #if 2 in r['class_ids']:
+                #if 1 and 2 in r['class_ids']:
 
-                    #    cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
+                #    cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
 
-                    #    cxo, cyo = count_centroid(cnt)
-                    #    cxp, cyp = count_centroid(cnt_polar)
+                #    cxo, cyo = count_centroid(cnt)
+                #    cxp, cyp = count_centroid(cnt_polar)
 
-                    #    d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
-                    #    dx = fabs(cxp - cxo)
-                    #    dy = cyp - cyo
+                #    d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
+                #    dx = fabs(cxp - cxo)
+                #    dy = cyp - cyo
 
                 if 3 in r['class_ids']:
                     x1, x2, y1, y2 = count_bbox_coordinates(r['masks'], r['class_ids'], 3, class_names[3], count)
@@ -398,7 +406,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 if 4 in r['class_ids']:
                     x1_pipette, x2_pipette, y1_pipette, y2_pipette = count_bbox_coordinates(r['masks'], r['class_ids'],
                                                                                             4, class_names[4],count)
-                    print("Współrzędne końca pipety to x1, y2: (", x1_pipette, ", ", y2_pipette, ")")
+                    #print("Współrzędne końca pipety to x1, y2: (", x1_pipette, ", ", y2_pipette, ")")
 
                 stage_color = (255, 0, 0)
 
@@ -407,44 +415,47 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
+
                 elif labels and ('spermatozoon' and 'pipette' in labels) and len(set(labels)) == 2 \
                         and (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
                     stage = "Pobranie plemnika"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
+
                 elif labels and ('spermatozoon' and 'pipette' in labels) and len(set(labels)) == 2:
                     stage = "Unieruchomienie plemnika"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
+
                 elif labels and ('oocyte' and 'polar body' in labels) and len(set(labels)) == 2:
                     stage = "Ustawienie komorki"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                    count_oocyte_area(r['masks'], r['class_ids'], stage, count)
+
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
                         and x1_pipette < x2_oocyte < x1 and x1_pipette < cxo:
                     stage = "Zaciagniecie zawartosci komorki"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                    count_oocyte_area(r['masks'], r['class_ids'], stage, count)
+
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
                         and x1 < x1_pipette < x2_oocyte:
                     stage = "Wstrzykniecie plemnika"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                    count_oocyte_area(r['masks'], r['class_ids'], stage, count)
+
                 elif labels and ('oocyte' and 'pipette' in labels) and len(set(labels)) >= 2 and len(labels) > 2 \
                         and x1_pipette <= x2_oocyte and circratio < 0.8:
                     stage = "Wbicie pipety"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                    count_oocyte_area(r['masks'], r['class_ids'], stage, count)
+
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 and len(
                         labels) > 3 \
                         and (x1 > x1_oocyte) and (y1 > y1_oocyte) and (x2 < x2_oocyte) and (y2 < y2_oocyte) and (
@@ -453,7 +464,6 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
-                    count_oocyte_area(r['masks'], r['class_ids'], stage, count)
 
                 # Add image to video writer
                 vwriter.write(frame)
