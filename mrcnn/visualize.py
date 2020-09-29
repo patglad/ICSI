@@ -199,9 +199,6 @@ def display_instances_video(image, boxes, masks, class_ids, class_names, scores,
         # dokladam wspolrzedne boxa
         caption = '{} {:.3f} ({:.2f}, {:.2f})'.format(label, score, x1, y1) if score else label
         print("Caption: ", caption)
-        #from math import sqrt, pow
-        #d = sqrt( pow((x2-x1), 2) + pow((y2-y1), 2) )
-        #print(d)
 
         # Mask
         mask = masks[:, :, i]

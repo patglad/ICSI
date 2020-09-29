@@ -283,11 +283,13 @@ def count_mask_contours(masks, class_ids, id):
     contours, _ = cv2.findContours(masks[:, :, np.where(class_ids == id)[0]].astype(np.uint8), cv2.RETR_TREE,
                                    cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
+    print("Cnt: ", cnt)
     return cnt
 
 
 def count_perimeter(cnt):
     perimeter = cv2.arcLength(cnt, True)
+    print("Permeter: ", perimeter)
     return perimeter
 
 
@@ -295,16 +297,19 @@ def count_centroid(cnt):
     M = cv2.moments(cnt)
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
+    print("Centroid: ", cx, cy)
     return cx, cy
 
 
 def count_area(cnt):
     area = cv2.contourArea(cnt)
+    print("Area: ", area)
     return area
 
 
 def count_circularity_ratio(area, perimeter):
     circratio = 2 * sqrt(pi * area) / perimeter
+    print("ratio: ", circratio)
     return circratio
 
 
@@ -354,14 +359,14 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
             success, frame = vcapture.read()
             if success:
                 # OpenCV returns images as BGR, convert to RGB
-                # PG: image = image[..., ::-1]
+                frame = frame[..., ::-1]
                 # Detect objects
                 r = model.detect([frame], verbose=0)[0]
                 # Color splash
-                # PG: splash = color_splash(image, r['masks'])
+                splash = color_splash(frame, r['masks'])
                 # RGB -> BGR to save image to video
                 # PG: splash = splash[..., ::-1]
-                frame, labels = visualize.display_instances_video(frame, r['rois'], r['masks'], r['class_ids'],
+                frame, labels = visualize.display_instances_video(splash, r['rois'], r['masks'], r['class_ids'],
                                                                   class_names, r['scores'], colors)
 
                 print("Rois: ", r['rois'])
@@ -374,8 +379,10 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     perimeter = count_perimeter(cnt)
                     area = count_area(cnt)
                     circratio = count_circularity_ratio(area, perimeter)
+                    cxo, cyo = count_centroid(cnt)
 
                     #if 2 in r['class_ids']:
+
                     #    cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
 
                     #    cxo, cyo = count_centroid(cnt)
@@ -418,7 +425,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     )
                     count_oocyte_area(r['masks'], r['class_ids'], stage, count)
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
-                        and x1_pipette < x2_oocyte < x1:
+                        and x1_pipette < x2_oocyte < x1 and x1_pipette < cxo:
                     stage = "Zaciagniecie zawartosci komorki"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
