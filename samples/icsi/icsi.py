@@ -73,7 +73,7 @@ class ICSIConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 4  # Background + objects
@@ -86,7 +86,7 @@ class ICSIConfig(Config):
     # Skip detections with < 90% confidence
     # DETECTION_MIN_CONFIDENCE = 0.9
     # PG: changed to 0.8
-    DETECTION_MIN_CONFIDENCE = 0.8
+    DETECTION_MIN_CONFIDENCE = 0.9
 
 
 ############################################################
@@ -271,7 +271,7 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
     x2 = bbox_coordinates[0][3]
     y1 = bbox_coordinates[0][0]
     y2 = bbox_coordinates[0][2]
-    print("{} bbox: ".format(label), bbox_coordinates)
+    #print("{} bbox: ".format(label), bbox_coordinates)
     f = open("bboxes.txt", "a+")
     f.write("Frame: {}".format(count))
     f.write("Bbox {}: {} \r\n".format(label, bbox_coordinates))
@@ -280,16 +280,21 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
 
 
 def count_mask_contours(masks, class_ids, id):
+    print("RETR tree: ", cv2.RETR_TREE)
+    print("Chain approx simple: ", cv2.CHAIN_APPROX_SIMPLE)
+    #print("RETR_FLOODFILL: ", cv2.RETR_FLOODFILL)
+    #contours, _ = cv2.findContours(masks[:, :, np.where(class_ids == id)[0]].astype(np.uint8), cv2.RETR_TREE,
+    #                               cv2.CHAIN_APPROX_SIMPLE)
     contours, _ = cv2.findContours(masks[:, :, np.where(class_ids == id)[0]].astype(np.uint8), cv2.RETR_TREE,
                                    cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
-    print("Cnt: ", cnt)
+    #print("Cnt: ", cnt)
     return cnt
 
 
 def count_perimeter(cnt):
     perimeter = cv2.arcLength(cnt, True)
-    print("Perimeter: ", perimeter)
+    #print("Perimeter: ", perimeter)
     return perimeter
 
 
@@ -297,7 +302,7 @@ def count_centroid(cnt):
     M = cv2.moments(cnt)
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
-    print("Centroid: ", cx, cy)
+    #print("Centroid: ", cx, cy)
     f = open("oocyte_params.txt", "a+")
     f.write("Centroid: ({}, {})\r\n".format(cx, cy))
     f.close()
@@ -306,13 +311,13 @@ def count_centroid(cnt):
 
 def count_area(cnt):
     area = cv2.contourArea(cnt)
-    print("Area: ", area)
+    #print("Area: ", area)
     return area
 
 
 def count_circularity_ratio(area, perimeter, count):
     circratio = 2 * sqrt(pi * area) / perimeter
-    print("ratio: ", circratio)
+    #print("ratio: ", circratio)
     f = open("oocyte_params.txt", "a+")
     f.write("Frame: {}\n".format(count))
     f.write("Circularity ratio: {}\n".format(circratio))
@@ -377,17 +382,19 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 frame, labels = visualize.display_instances_video(splash, r['rois'], r['masks'], r['class_ids'],
                                                                   class_names, r['scores'], colors)
 
-                print("Rois: ", r['rois'])
-                print("Class ids: ", r['class_ids'])
+                #print("Rois: ", r['rois'])
+                #print("Class ids: ", r['class_ids'])
 
                 if 1 in r['class_ids']:
                     x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = count_bbox_coordinates(r['masks'], r['class_ids'], 1,
                                                                                         class_names[1], count)
+
                     cnt = count_mask_contours(r['masks'], r['class_ids'], 1)
                     perimeter = count_perimeter(cnt)
                     area = count_area(cnt)
                     circratio = count_circularity_ratio(area, perimeter, count)
                     cxo, cyo = count_centroid(cnt)
+
 
                 #if 1 and 2 in r['class_ids']:
 
@@ -405,7 +412,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                 if 4 in r['class_ids']:
                     x1_pipette, x2_pipette, y1_pipette, y2_pipette = count_bbox_coordinates(r['masks'], r['class_ids'],
-                                                                                            4, class_names[4],count)
+                                                                                            4, class_names[4], count)
                     #print("Współrzędne końca pipety to x1, y2: (", x1_pipette, ", ", y2_pipette, ")")
 
                 stage_color = (255, 0, 0)
@@ -436,10 +443,10 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     )
 
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
-                        and x1_pipette < x2_oocyte < x1 and x1_pipette < cxo:
+                        and x1_pipette < cxo:
                     stage = "Zaciagniecie zawartosci komorki"
                     frame = cv2.putText(
-                        frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
+                        frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
 
                 elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
@@ -449,15 +456,14 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
 
-                elif labels and ('oocyte' and 'pipette' in labels) and len(set(labels)) >= 2 and len(labels) > 2 \
+                elif labels and ('oocyte' and 'pipette' in labels) and len(set(labels)) >= 2 \
                         and x1_pipette <= x2_oocyte and circratio < 0.8:
                     stage = "Wbicie pipety"
                     frame = cv2.putText(
                         frame, stage, (width - 900, height - 600), cv2.FONT_HERSHEY_COMPLEX, 0.7, stage_color, 2
                     )
 
-                elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 and len(
-                        labels) > 3 \
+                elif labels and ('oocyte' and 'pipette' and 'spermatozoon' in labels) and len(set(labels)) >= 3 \
                         and (x1 > x1_oocyte) and (y1 > y1_oocyte) and (x2 < x2_oocyte) and (y2 < y2_oocyte) and (
                         x1_pipette > x2_oocyte):
                     stage = "Wyciagniecie pipety"
