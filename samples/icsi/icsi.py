@@ -232,7 +232,7 @@ def train(model):
                 learning_rate=config.LEARNING_RATE,
                 # PG: epochs can be reduced e.g. to 3
                 epochs=1000,
-                layers='heads')
+                layers='all')
 
 
 # We don't need splash effect in our implementation because the photos are in grayscale. Code needs refactoring.
