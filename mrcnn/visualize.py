@@ -193,12 +193,9 @@ def display_instances_video(image, boxes, masks, class_ids, class_names, scores,
 
         # Label
         label = class_names[class_ids[i]]
-        #print(label)
         color = class_dict[label]
         score = scores[i] if scores is not None else None
-        # dokladam wspolrzedne boxa
-        caption = '{} {:.3f} ({:.2f}, {:.2f})'.format(label, score, x1, y1) if score else label
-        #print("Caption: ", caption)
+        caption = '{} {:.3f}'.format(label, score) if score else label
 
         # Mask
         mask = masks[:, :, i]
@@ -209,7 +206,7 @@ def display_instances_video(image, boxes, masks, class_ids, class_names, scores,
         )
 
         labels_list.append(label)
-    print("labels: ", labels_list)
+
     return image, labels_list
 
 def display_differences(image,
