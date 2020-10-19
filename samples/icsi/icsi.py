@@ -211,7 +211,7 @@ class ICSIDataset(utils.Dataset):
             super(self.__class__, self).image_reference(image_id)
 
 
-def train(model):
+def train(model, epochs, layers):
     """Train the model."""
     # Training dataset.
     dataset_train = ICSIDataset()
@@ -228,11 +228,12 @@ def train(model):
     # COCO trained weights, we don't need to train too long. Also,
     # no need to train all layers, just the heads should do it.
     print("Training network heads")
+    layersedit = '{}'.format(layers)
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
                 # PG: epochs can be reduced e.g. to 3
-                epochs=1000,
-                layers='all')
+                epochs=epochs,
+                layers=layersedit)
 
 
 # We don't need splash effect in our implementation because the photos are in grayscale. Code needs refactoring.
@@ -527,11 +528,25 @@ if __name__ == '__main__':
     parser.add_argument('--video', required=False,
                         metavar="path or URL to video",
                         help='Video to apply the color splash effect on')
+    parser.add_argument('--epochs', required=False,
+                        metavar="number of epochs",
+                        help='Number of epochs to train')
+    parser.add_argument('--steps', required=False,
+                        metavar="number of steps per epoch",
+                        help='Number of steps per epoch to train')
+    parser.add_argument('--imGPU', required=False,
+                        metavar="images per GPU",
+                        help='Number of images per GPU to train')
+    parser.add_argument('--layers', required=False,
+                        metavar="heads or all layers",
+                        help='Train heads or all layers')
     args = parser.parse_args()
 
     # Validate arguments
     if args.command == "train":
-        assert args.dataset, "Argument --dataset is required for training"
+        #assert args.dataset or args.epochs or args.steps or args.layers or args.imgGPU, \  ####-> edytowac!!!!!
+        assert args.dataset, \
+            "Arguments --dataset, --epochs, --steps and --layers are required for training"
     elif args.command == "splash":
         assert args.image or args.video, \
             "Provide --image or --video to apply color splash"
@@ -539,10 +554,21 @@ if __name__ == '__main__':
     print("Weights: ", args.weights)
     print("Dataset: ", args.dataset)
     print("Logs: ", args.logs)
+    print("Epochs: ", args.epochs)
+    print("Steps per epoch: ", args.steps)
+    print("Images per gpu: ", args.imGPU)
+    print("Layers: ", args.layers)
 
     # Configurations
     if args.command == "train":
-        config = ICSIConfig()
+        class InferenceConfig(ICSIConfig):
+            # Set batch size to 1 since we'll be running inference on
+            # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+            # PG zwiekszylam IMAGES_PER_GPU z 1 do 16
+            STEPS_PER_EPOCH = int(args.steps)
+            IMAGES_PER_GPU = int(args.imGPU)
+            print(IMAGES_PER_GPU)
+        config = InferenceConfig()
     else:
         class InferenceConfig(ICSIConfig):
             # Set batch size to 1 since we'll be running inference on
@@ -550,7 +576,6 @@ if __name__ == '__main__':
             # PG zwiekszylam IMAGES_PER_GPU z 1 do 16
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
-
 
         config = InferenceConfig()
     config.display()
@@ -591,7 +616,10 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
-        train(model)
+        #print("dane: ", args.epochs, args.layers)
+        intepochs = int(args.epochs)
+        print(intepochs)
+        train(model, intepochs, args.layers)
     elif args.command == "splash":
         detect_and_color_splash(model, image_path=args.image,
                                 video_path=args.video)
