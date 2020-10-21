@@ -406,7 +406,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     x1_pipette, x2_pipette, y1_pipette, y2_pipette = count_bbox_coordinates(r['masks'], r['class_ids'],
                                                                                             4, class_names[4], count)
 
-                stage_color = (0, 0, 255)
+                stage_color = (255, 0, 0)
                 font_size = 0.6
 
                 if labels:
