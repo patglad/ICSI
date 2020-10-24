@@ -273,7 +273,7 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
     y1 = bbox_coordinates[0][0]
     y2 = bbox_coordinates[0][2]
     f = open("bboxes.txt", "a+")
-    f.write("Frame: %d\n" % (count))
+    #f.write("Frame: %d\n" % (count))
     f.write("Bbox {}: {} \r\n".format(label, bbox_coordinates))
     f.close()
     return x1, x2, y1, y2
@@ -291,19 +291,19 @@ def count_perimeter(cnt):
     return perimeter
 
 
-def count_centroid(cnt):
+def count_centroid(cnt, class_name):
     M = cv2.moments(cnt)
     if M['m00'] != 0:
         cx = int(M['m10'] / M['m00'])
         cy = int(M['m01'] / M['m00'])
         f = open("params.txt", "a+")
-        f.write("Centroid: ({}, {})\r\n".format(cx, cy))
+        f.write("Centroid {}: ({}, {})\r\n".format(class_name, cx, cy))
         f.close()
     else:
         cx = 0
         cy = 0
-        f = open("oocyte_params.txt", "a+")
-        f.write("Centroid: ({}, {})\r\n".format(cx, cy))
+        f = open("params.txt", "a+")
+        f.write("Centroid {}: ({}, {})\r\n".format(class_name, cx, cy))
         f.close()
     return cx, cy
 
@@ -316,9 +316,9 @@ def count_area(cnt):
 def count_circularity_ratio(area, perimeter, count):
     if perimeter != 0:
         circratio = 2 * sqrt(pi * area) / perimeter
-        f = open("oocyte_params.txt", "a+")
+        f = open("params.txt", "a+")
         f.write("Frame: {}\n".format(count))
-        f.write("Circularity ratio: {}\n".format(circratio))
+        f.write("Circularity ratio oocyte: {}\n".format(circratio))
         f.close()
         return circratio
 
@@ -381,6 +381,10 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 frame, labels = visualize.display_instances_video(splash, r['rois'], r['masks'], r['class_ids'],
                                                                   class_names, r['scores'], colors)
 
+                f = open("bboxes.txt", "a+")
+                f.write("Frame: %d\n" % (count))
+                f.close()
+
                 if 1 in r['class_ids'] and len(set(labels)) == len(labels):
                     x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = count_bbox_coordinates(r['masks'], r['class_ids'], 1,
                                                                                         class_names[1], count)
@@ -388,11 +392,13 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                     perimeter = count_perimeter(cnt)
                     area = count_area(cnt)
                     circratio = count_circularity_ratio(area, perimeter, count)
-                    cxo, cyo = count_centroid(cnt)
+                    cxo, cyo = count_centroid(cnt, class_names[1])
 
                     if 2 in r['class_ids']:
+                        x1_polar, x2_polar, y1_polar, y2_polar = count_bbox_coordinates(r['masks'], r['class_ids'], 2,
+                                                                                        class_names[2], count)
                         cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
-                        cxp, cyp = count_centroid(cnt_polar)
+                        cxp, cyp = count_centroid(cnt_polar, class_names[2])
                         #d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
                         dx = fabs(cxp - cxo)
                         dy = cyp - cyo
@@ -411,7 +417,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                 if labels:
                     if 'spermatozoon' in labels and len(set(labels)) == 1 and len(labels) > 1:
-                        stage = "Wybor plemnika"
+                        stage = "Sperm selection"
                         print(stage)
                         frame = cv2.putText(
                             frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
@@ -419,13 +425,13 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                     elif ('spermatozoon' in labels) and ('pipette' in labels) and len(set(labels)) == 2:
                         if (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
-                            stage = "Pobranie plemnika"
+                            stage = "Sperm collection"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
                         else:
-                            stage = "Unieruchomienie plemnika"
+                            stage = "Immobilization of the sperm"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
@@ -433,54 +439,52 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                     elif ('oocyte' in labels) and ('polar body' in labels) and len(set(labels)) == 2:
                         if location < 0.5:
-                            stage = "Ustawienie komorki"
+                            stage = "Oocyte positioning"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("oocyte_params.txt", "a+")
+                            f = open("params.txt", "a+")
                             f.write("Stage: {}\r\n".format(stage))
                             f.close()
 
                     elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(set(labels)) == len(labels):
-                        print("labele z warunku: ", labels)
                         if x1_pipette < cxo:
-                            stage = "Zaciagniecie zawartosci komorki"
+                            stage = "Flow of the cell organelles into the pipette"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("oocyte_params.txt", "a+")
+                            f = open("params.txt", "a+")
                             f.write("Stage: {}\r\n".format(stage))
                             f.close()
                         elif x1 < x1_pipette < x2_oocyte and y1 > y1_oocyte:
-                            stage = "Wstrzykniecie plemnika"
+                            stage = "Sperm injection"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("oocyte_params.txt", "a+")
+                            f = open("params.txt", "a+")
                             f.write("Stage: {}\r\n".format(stage))
                             f.close()
                         elif (x1 > x1_oocyte) and (y1 > y1_oocyte) and (x2 < x2_oocyte) and (y2 < y2_oocyte) and (x1_pipette > x2_oocyte):
-                            stage = "Wyciagniecie pipety"
+                            stage = "Removing the pipette"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("oocyte_params.txt", "a+")
+                            f = open("params.txt", "a+")
                             f.write("Stage: {}\r\n".format(stage))
                             f.close()
 
                     elif ('oocyte' in labels) and ('pipette' in labels):
-                        print("labele z warunku: ", labels)
                         if x1_pipette <= x2_oocyte and circratio < 0.8:
-                            stage = "Wbicie pipety"
+                            stage = "Inserting the pipette"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("oocyte_params.txt", "a+")
+                            f = open("params.txt", "a+")
                             f.write("Stage: {}\r\n".format(stage))
                             f.close()
 

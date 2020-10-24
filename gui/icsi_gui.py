@@ -75,7 +75,7 @@ class Window(QMainWindow):
         ICSIWindow.setMaximumSize(285, 290)
         ICSIWindow.setStyleSheet("QMainWindow{\n"
                                  "background-image: url(:/nowyPrzedrostek/tlo.jpg);\n""}\n""")
-        ICSIWindow.setWindowTitle("ICSI stages")
+        ICSIWindow.setWindowTitle("Stages of ICSI")
         #ICSIWindow.setWindowFlag(Qt.FramelessWindowHint) #--> hides the bar
         ICSIWindow.setWindowIcon(QIcon('ivf.png'))
 

@@ -1,6 +1,7 @@
 import sys
 
 from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QIcon
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QStyle, QLabel, QSizePolicy, QWidget, QVBoxLayout, QFileDialog, \
@@ -12,6 +13,7 @@ class VideoWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Display ICSI video")
+        self.setWindowIcon(QIcon('multimedia.png'))
 
         self.openButton = QPushButton("Open video")
         self.openButton.clicked.connect(self.open_video_file)
