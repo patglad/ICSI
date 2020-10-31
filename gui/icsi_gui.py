@@ -47,7 +47,7 @@ class Window(QMainWindow):
             detection_Popen(weights, filePath)
 
     def start_training(self):
-        if self.epochs.text() or self.steps.text():
+        if self.epochs.text() and self.steps.text():
             epochs_input = int(self.epochs.text())
             steps_input = int(self.steps.text())
             imGPU_input = int(self.imGPU.currentText())
