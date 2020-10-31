@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QWidget, QPu
 
 import subprocess
 import os
+from gui.gui_utils import detection_Popen, train_Popen
 
 
 class Window(QMainWindow):
@@ -30,9 +31,10 @@ class Window(QMainWindow):
         return filePath
 
     def choose_dataset(self):
-        dataset = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        dataset = str(QFileDialog.getExistingDirectory(self, "Select dataset"))
         print(dataset)
         return dataset
+
 
     def start_detection(self):
         filePath = self.choose_video()
@@ -42,10 +44,7 @@ class Window(QMainWindow):
         weights = self.choose_weights()
 
         if filePath and weights:
-            command = r'python icsi.py splash --weights={} --video={}'.format(weights, filePath)
-            print(command)
-            subprocess.Popen(["start", "cmd", "/k", command], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             shell=True, cwd=r'D:\MASK-RCNN\samples\icsi')
+            detection_Popen(weights, filePath)
 
     def start_training(self):
         if self.epochs.text() or self.steps.text():
@@ -56,11 +55,7 @@ class Window(QMainWindow):
             dataset = self.choose_dataset()
             weights = self.choose_weights()
             if dataset and weights:
-                command = r'python icsi.py train --dataset={} --weights={} --epochs={} --steps={} --imGPU={} --layers={}' \
-                    .format(dataset, weights, epochs_input, steps_input, imGPU_input, layers_input)
-                print(command)
-                subprocess.Popen(["start", "cmd", "/k", command], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 shell=True, cwd=r'D:\MASK-RCNN\samples\icsi')
+                train_Popen(dataset, weights, epochs_input, steps_input, imGPU_input, layers_input)
         else:
             QMessageBox.warning(self, 'Warning', 'Set the parameters before training.', QMessageBox.Ok)
 

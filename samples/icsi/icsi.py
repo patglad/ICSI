@@ -266,14 +266,13 @@ def count_oocyte_area(masks, class_ids, stage, count):
     f.close()
 
 
-def count_bbox_coordinates(masks, class_ids, id, label, count):
+def count_bbox_coordinates(masks, class_ids, id, label):
     bbox_coordinates = utils.extract_bboxes(masks[:, :, np.where(class_ids == id)[0]])
     x1 = bbox_coordinates[0][1]
     x2 = bbox_coordinates[0][3]
     y1 = bbox_coordinates[0][0]
     y2 = bbox_coordinates[0][2]
     f = open("bboxes.txt", "a+")
-    #f.write("Frame: %d\n" % (count))
     f.write("Bbox {}: {} \r\n".format(label, bbox_coordinates))
     f.close()
     return x1, x2, y1, y2
@@ -281,7 +280,7 @@ def count_bbox_coordinates(masks, class_ids, id, label, count):
 
 def count_mask_contours(masks, class_ids, id):
     contours, _ = cv2.findContours(masks[:, :, np.where(class_ids == id)[0]].astype(np.uint8), cv2.RETR_TREE,
-                                   cv2.CHAIN_APPROX_SIMPLE)
+                                   cv2.CHAIN_APPROX_NONE)
     cnt = contours[0]
     return cnt
 
@@ -323,6 +322,12 @@ def count_circularity_ratio(area, perimeter, count):
         return circratio
 
 
+def save_stage_to_file(stage):
+    f = open("params.txt", "a+")
+    f.write("Stage: {}\r\n".format(stage))
+    f.close()
+
+
 def detect_and_color_splash(model, image_path=None, video_path=None):
     assert image_path or video_path
 
@@ -347,9 +352,9 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
         vcapture = cv2.VideoCapture(video_path)
         width = int(vcapture.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        print(width, height)
+        #print(width, height)
         fps = vcapture.get(cv2.CAP_PROP_FPS)
-        print("FPS: ", fps)
+        #print("FPS: ", fps)
 
         # Define codec and create video writer
         file_name = "splash_{:%Y%m%dT%H%M%S}.avi".format(datetime.datetime.now())
@@ -387,7 +392,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                 if 1 in r['class_ids'] and len(set(labels)) == len(labels):
                     x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = count_bbox_coordinates(r['masks'], r['class_ids'], 1,
-                                                                                        class_names[1], count)
+                                                                                        class_names[1])
                     cnt = count_mask_contours(r['masks'], r['class_ids'], 1)
                     perimeter = count_perimeter(cnt)
                     area = count_area(cnt)
@@ -396,21 +401,21 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                     if 2 in r['class_ids']:
                         x1_polar, x2_polar, y1_polar, y2_polar = count_bbox_coordinates(r['masks'], r['class_ids'], 2,
-                                                                                        class_names[2], count)
+                                                                                        class_names[2])
                         cnt_polar = count_mask_contours(r['masks'], r['class_ids'], 2)
                         cxp, cyp = count_centroid(cnt_polar, class_names[2])
-                        #d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
+                        # d = sqrt((cxp - cxo) ** 2 + (cyp - cyo) ** 2)
                         dx = fabs(cxp - cxo)
                         dy = cyp - cyo
                         if dy != 0:
-                            location = fabs(dx/dy)
+                            location = fabs(dx / dy)
 
                 if 3 in r['class_ids']:
-                    x1, x2, y1, y2 = count_bbox_coordinates(r['masks'], r['class_ids'], 3, class_names[3], count)
+                    x1, x2, y1, y2 = count_bbox_coordinates(r['masks'], r['class_ids'], 3, class_names[3])
 
                 if 4 in r['class_ids']:
                     x1_pipette, x2_pipette, y1_pipette, y2_pipette = count_bbox_coordinates(r['masks'], r['class_ids'],
-                                                                                            4, class_names[4], count)
+                                                                                            4, class_names[4])
 
                 stage_color = (255, 0, 0)
                 font_size = 0.6
@@ -420,73 +425,75 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                         stage = "Sperm selection"
                         print(stage)
                         frame = cv2.putText(
-                            frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
+                            frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color,
+                            2
                         )
+                        save_stage_to_file(stage)
 
                     elif ('spermatozoon' in labels) and ('pipette' in labels) and len(set(labels)) == 2:
                         if (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
                             stage = "Sperm collection"
                             print(stage)
                             frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
                             )
+                            save_stage_to_file(stage)
                         else:
                             stage = "Immobilization of the sperm"
                             print(stage)
                             frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
                             )
+                            save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('polar body' in labels) and len(set(labels)) == 2:
+                    elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(
+                            set(labels)) == len(labels):
+                        if x1_pipette < cxo:
+                            stage = "Flow of the cell organelles into the pipette"
+                            print(stage)
+                            frame = cv2.putText(
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
+                            )
+                            save_stage_to_file(stage)
+                        elif x1 < x1_pipette < x2_oocyte and y1 > y1_oocyte:
+                            stage = "Sperm injection"
+                            print(stage)
+                            frame = cv2.putText(
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
+                            )
+                            save_stage_to_file(stage)
+                        elif (x1 > x1_oocyte) and (y1 > y1_oocyte) and (x2 < x2_oocyte) and (y2 < y2_oocyte) and (
+                                x1_pipette > x2_oocyte):
+                            stage = "Removing the pipette"
+                            print(stage)
+                            frame = cv2.putText(
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
+                            )
+                            save_stage_to_file(stage)
+
+                    elif ('oocyte' in labels) and ('polar body' in labels) and len(labels) == len(set(labels)):
                         if location < 0.5:
                             stage = "Oocyte positioning"
                             print(stage)
                             frame = cv2.putText(
                                 frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
                             )
-                            f = open("params.txt", "a+")
-                            f.write("Stage: {}\r\n".format(stage))
-                            f.close()
+                            save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(set(labels)) == len(labels):
-                        if x1_pipette < cxo:
-                            stage = "Flow of the cell organelles into the pipette"
-                            print(stage)
-                            frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
-                            )
-                            f = open("params.txt", "a+")
-                            f.write("Stage: {}\r\n".format(stage))
-                            f.close()
-                        elif x1 < x1_pipette < x2_oocyte and y1 > y1_oocyte:
-                            stage = "Sperm injection"
-                            print(stage)
-                            frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
-                            )
-                            f = open("params.txt", "a+")
-                            f.write("Stage: {}\r\n".format(stage))
-                            f.close()
-                        elif (x1 > x1_oocyte) and (y1 > y1_oocyte) and (x2 < x2_oocyte) and (y2 < y2_oocyte) and (x1_pipette > x2_oocyte):
-                            stage = "Removing the pipette"
-                            print(stage)
-                            frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
-                            )
-                            f = open("params.txt", "a+")
-                            f.write("Stage: {}\r\n".format(stage))
-                            f.close()
-
-                    elif ('oocyte' in labels) and ('pipette' in labels):
+                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
                         if x1_pipette <= x2_oocyte and circratio < 0.8:
                             stage = "Inserting the pipette"
                             print(stage)
                             frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size, stage_color, 2
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
                             )
-                            f = open("params.txt", "a+")
-                            f.write("Stage: {}\r\n".format(stage))
-                            f.close()
+                            save_stage_to_file(stage)
 
                 # Add image to video writer
                 vwriter.write(frame)
@@ -545,12 +552,12 @@ if __name__ == '__main__':
                         metavar="heads or all layers",
                         help='Train heads or all layers')
     args = parser.parse_args()
+    print("###### args ######", args)
 
     # Validate arguments
     if args.command == "train":
-        #assert args.dataset or args.epochs or args.steps or args.layers or args.imgGPU, \  ####-> edytowac!!!!!
-        assert args.dataset, \
-            "Arguments --dataset, --epochs, --steps and --layers are required for training"
+        assert args.dataset or args.epochs or args.steps or args.layers or args.imgGPU, \
+            "Arguments --dataset, --epochs, --steps, --layers and --imGPU are required for training"
     elif args.command == "splash":
         assert args.image or args.video, \
             "Provide --image or --video to apply color splash"
@@ -571,7 +578,8 @@ if __name__ == '__main__':
             # PG zwiekszylam IMAGES_PER_GPU z 1 do 16
             STEPS_PER_EPOCH = int(args.steps)
             IMAGES_PER_GPU = int(args.imGPU)
-            print(IMAGES_PER_GPU)
+
+
         config = InferenceConfig()
     else:
         class InferenceConfig(ICSIConfig):
@@ -580,6 +588,7 @@ if __name__ == '__main__':
             # PG zwiekszylam IMAGES_PER_GPU z 1 do 16
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
+
 
         config = InferenceConfig()
     config.display()
@@ -620,7 +629,7 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
-        #print("dane: ", args.epochs, args.layers)
+        # print("dane: ", args.epochs, args.layers)
         intepochs = int(args.epochs)
         print(intepochs)
         train(model, intepochs, args.layers)
