@@ -70,7 +70,7 @@ def define_stage(r, class_names, count):
                 return "Immobilization of the sperm"
 
         elif (3 in r['class_ids']) and (1 in r['class_ids']) and (4 in r['class_ids']) and len(set(r['class_ids'])) == len(r['class_ids']):
-            if x1_pipette < cxo:
+            if x1_pipette < cxo and (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
                 return "Flow of the cell organelles into the pipette"
 
             elif x1 < x1_pipette < x2_oocyte and y1 > y1_oocyte:
@@ -92,12 +92,13 @@ def define_stage(r, class_names, count):
             return "Stage not detected"
 
 
-def detect_and_color_splash(model, video_path):
+def detect_and_color_splash(model, video_path, stage_name=None):
     model.load_weights(weights, by_name=True)
     if video_path:
         vcapture = cv2.VideoCapture(video_path)
 
         count = 0
+        number_of_ok = 0
         success = True
         colors = visualize.random_colors(len(class_names))
 
@@ -118,6 +119,10 @@ def detect_and_color_splash(model, video_path):
                 stage = define_stage(r, class_names, count)
                 print(stage)
 
+                if stage_name is not None:
+                    if stage == stage_name:
+                        number_of_ok += 1
+
                 count += 1
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -127,6 +132,12 @@ def detect_and_color_splash(model, video_path):
 
         vcapture.release()
         cv2.destroyAllWindows()
+
+    if stage_name is not None:
+        print("number of ok: ", number_of_ok)
+        correct = number_of_ok / count * 100
+        print("{} correct: {}".format(stage_name, correct))
+
     print("Done")
     return 0
 

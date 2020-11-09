@@ -450,7 +450,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
                     elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(
                             set(labels)) == len(labels):
-                        if x1_pipette < cxo:
+                        if x1_pipette < cxo and (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
                             stage = "Flow of the cell organelles into the pipette"
                             print(stage)
                             frame = cv2.putText(

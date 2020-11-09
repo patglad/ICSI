@@ -6,8 +6,41 @@ import testing_utils
 class TestICSI(unittest.TestCase):
 
     def test_detect_and_color_splash(self):
-        video_path = "D:/MASK-RCNN/datasets/videos/103_pobranie_plemnika.avi"
+        video_path = "D:/MASK-RCNN/datasets/videos/1_pobranie.avi"
         self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path), 0)
+
+        print("Wybor")
+        video_path = "D:/MASK-RCNN/datasets/videos/wybor.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Sperm selection"), 0)
+
+        print("Unieruchomienie")
+        video_path = "D:/MASK-RCNN/datasets/videos/unieruchomienie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Immobilization of the sperm"), 0)
+
+        print("Pobranie")
+        video_path = "D:/MASK-RCNN/datasets/videos/pobranie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Sperm collection"), 0)
+
+        print("Ustawienie")
+        video_path = "D:/MASK-RCNN/datasets/videos/ustawienie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Oocyte positioning"), 0)
+
+        print("Wbicie")
+        video_path = "D:/MASK-RCNN/datasets/videos/wbicie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Inserting the pipette"), 0)
+
+        print("Zaciagniecie")
+        video_path = "D:/MASK-RCNN/datasets/videos/zaciagniecie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Flow of the cell organelles into the pipette"), 0)
+
+        print("Wstrzykniecie")
+        video_path = "D:/MASK-RCNN/datasets/videos/wstrzykniecie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Sperm injection"), 0)
+
+        print("Wyciagniecie")
+        video_path = "D:/MASK-RCNN/datasets/videos/wyciagniecie.avi"
+        self.assertEqual(testing_utils.detect_and_color_splash(testing_utils.model, video_path, "Removing the pipette"), 0)
+
 
     def test_define_stage(self):
         r, model = testing_utils.run_detection(testing_utils.model, testing_utils.dataset, 6)
