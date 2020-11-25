@@ -352,9 +352,9 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
         vcapture = cv2.VideoCapture(video_path)
         width = int(vcapture.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        #print(width, height)
+        print(width, height)
         fps = vcapture.get(cv2.CAP_PROP_FPS)
-        #print("FPS: ", fps)
+        print("FPS: ", fps)
 
         # Define codec and create video writer
         file_name = "splash_{:%Y%m%dT%H%M%S}.avi".format(datetime.datetime.now())
@@ -390,7 +390,14 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 f.write("Frame: %d\n" % (count))
                 f.close()
 
-                if 1 in r['class_ids'] and len(set(labels)) == len(labels):
+                print(labels)
+                oocyte_counter = 0
+                for elem in labels:
+                    if elem == "oocyte":
+                        oocyte_counter += 1
+                #print(labels, oocyte_counter)
+
+                if 1 in r['class_ids'] and len(set(r['class_ids'])) == len(r['class_ids']):
                     x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = count_bbox_coordinates(r['masks'], r['class_ids'], 1,
                                                                                         class_names[1])
                     cnt = count_mask_contours(r['masks'], r['class_ids'], 1)
@@ -448,6 +455,16 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
+                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
+                        if x1_pipette <= x2_oocyte and circratio < 0.85:
+                            stage = "Inserting the pipette"
+                            print(stage)
+                            frame = cv2.putText(
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
+                            )
+                            save_stage_to_file(stage)
+
                     elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(
                             set(labels)) == len(labels):
                         if x1_pipette < cxo and (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
@@ -476,7 +493,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('polar body' in labels) and len(labels) == len(set(labels)):
+                    elif ('oocyte' in labels) and ('polar body' in labels) and len(labels) == len(set(labels)) == 2:
                         if location < 0.5:
                             stage = "Oocyte positioning"
                             print(stage)
@@ -485,8 +502,8 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
-                        if x1_pipette <= x2_oocyte and circratio < 0.8:
+                    elif ('oocyte' in labels) and ('pipette' in labels):
+                        if oocyte_counter == 1 and x1_pipette <= x2_oocyte and circratio < 0.85:
                             stage = "Inserting the pipette"
                             print(stage)
                             frame = cv2.putText(

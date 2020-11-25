@@ -1,5 +1,4 @@
 from math import fabs
-
 from samples.icsi import icsi
 from mrcnn import model as modellib
 from mrcnn import visualize
@@ -32,6 +31,11 @@ def run_detection(model, dataset, image_id):
 
 
 def define_stage(r, class_names, count):
+    oocyte_counter = 0
+    for elem in r:
+        if elem == "oocyte":
+            oocyte_counter += 1
+
     if 1 in r['class_ids'] and len(set(r['class_ids'])) == len(r['class_ids']):
         x1_oocyte, x2_oocyte, y1_oocyte, y2_oocyte = icsi.count_bbox_coordinates(r['masks'], r['class_ids'], 1,
                                                                                  class_names[1])
@@ -83,8 +87,8 @@ def define_stage(r, class_names, count):
             if 1 in r['class_ids']:
                 if location < 0.5:
                     return "Oocyte positioning"
-        elif (4 in r['class_ids']) and (1 in r['class_ids']) and len(set(r['class_ids'])) == len(r['class_ids']):
-            if x1_pipette <= x2_oocyte and circratio < 0.85:
+        elif (4 in r['class_ids']) and (1 in r['class_ids']):
+            if oocyte_counter == 1 and x1_pipette <= x2_oocyte and circratio < 0.85:
                 return "Inserting the pipette"
             else:
                 return "Stage not detected"
