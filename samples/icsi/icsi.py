@@ -227,7 +227,7 @@ def train(model, epochs, layers):
     # Since we're using a very small dataset, and starting from
     # COCO trained weights, we don't need to train too long. Also,
     # no need to train all layers, just the heads should do it.
-    print("Training network heads")
+    print("Training network {}".format(layers))
     layersedit = '{}'.format(layers)
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
@@ -455,16 +455,6 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
-                        if x1_pipette <= x2_oocyte and circratio < 0.85:
-                            stage = "Inserting the pipette"
-                            print(stage)
-                            frame = cv2.putText(
-                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
-                                stage_color, 2
-                            )
-                            save_stage_to_file(stage)
-
                     elif ('oocyte' in labels) and ('pipette' in labels) and ('spermatozoon' in labels) and len(
                             set(labels)) == len(labels):
                         if x1_pipette < cxo and (x1 > x1_pipette) and (y1 > y1_pipette) and (x2 < x2_pipette) and (y2 < y2_pipette):
@@ -493,6 +483,16 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
+                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
+                        if x1_pipette <= x2_oocyte and circratio < 0.85:
+                            stage = "Inserting the pipette"
+                            print(stage)
+                            frame = cv2.putText(
+                                frame, stage, (width - 900, height - 650), cv2.FONT_HERSHEY_COMPLEX, font_size,
+                                stage_color, 2
+                            )
+                            save_stage_to_file(stage)
+
                     elif ('oocyte' in labels) and ('polar body' in labels) and len(labels) == len(set(labels)) == 2:
                         if location < 0.5:
                             stage = "Oocyte positioning"
@@ -502,8 +502,8 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                             )
                             save_stage_to_file(stage)
 
-                    elif ('oocyte' in labels) and ('pipette' in labels):
-                        if oocyte_counter == 1 and x1_pipette <= x2_oocyte and circratio < 0.85:
+                    elif ('oocyte' in labels) and ('pipette' in labels) and len(labels) == len(set(labels)):
+                        if x1_pipette <= x2_oocyte and circratio < 0.85:
                             stage = "Inserting the pipette"
                             print(stage)
                             frame = cv2.putText(
